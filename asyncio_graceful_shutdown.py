@@ -81,7 +81,7 @@ def run_with_exit():
 
 def run_with_except():
     """
-    With try except KeyboardInterrupt
+    With try except CancelledError
     main finished not printed
     """
     async def main():
@@ -97,7 +97,12 @@ def run_with_except():
 
     return main
 
-try:
-    asyncio.run(run_with_except()())
-except KeyboardInterrupt:
-    print("Loop end")
+def shutdown(signum, *_):
+    print(f"Received exit signal {signal.Signals(signum).name}={signum} {signal.strsignal(signum)} ...")
+    tasks = [t for t in asyncio.all_tasks()]
+    for task in tasks:
+        task.cancel()
+
+for s in [signal.SIGTERM, signal.SIGINT]:
+    signal.signal(s, shutdown)
+asyncio.run(run_with_except()())
