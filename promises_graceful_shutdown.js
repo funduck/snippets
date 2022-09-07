@@ -46,8 +46,14 @@ function shutdown (signal) {
   }
 }
 
+function cleanup () {
+  console.log('Cleaning up before exit')
+}
+
 for (const s of ['SIGTERM', 'SIGINT']) {
   process.on(s, shutdown)
 }
+
+process.on('exit', cleanup)
 
 run()
