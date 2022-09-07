@@ -1,7 +1,7 @@
 import asyncio
-import signal
-import sys
 import time
+
+from graceful_app import GracefulApp
 
 async def start_server():
     async def handle_healthcheck(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
@@ -32,85 +32,22 @@ async def start_server():
 async def start_worker():
     try:
         while True:
-            # print("doing")
+            print("doing")
             await asyncio.sleep(1)
-    except asyncio.CancelledError:
-        print("Finalizing work")
+            a = []
+            a[1] = 1
+    except asyncio.CancelledError as e:
+        print("Finalizing worker")
         await asyncio.sleep(0.2)
-        print("Work finished")
+        print("Worker finished")
 
-# def run_with_event():
-#     """
-#     With event to finish special coroutine
-#     main finished will be printed
-#     """
-#     event_terminate = asyncio.Event()
+def shutdown_cb():
+    print("Shutdown callback called")
 
-#     async def start_termination_listener():
-#         nonlocal event_terminate
-#         while not event_terminate.is_set():
-#             await asyncio.sleep(0.1)
+async def shutdown_coro():
+    await asyncio.sleep(1)
+    print("Shutdown callback coro called")
 
-#     signal.signal(signal.SIGINT, lambda *_: event_terminate.set())
-
-#     async def main():
-#         await asyncio.wait([asyncio.create_task(coro) for coro in [
-#             start_server(),
-#             start_worker(),
-#             start_termination_listener()
-#         ]], return_when=asyncio.FIRST_COMPLETED)
-#         print("main finished")
-
-#     return main
-
-# def run_with_exit():
-#     """
-#     With sys.exit
-#     main finished not printed
-#     """
-#     signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
-
-#     async def main():
-#         await asyncio.wait([asyncio.create_task(coro) for coro in [start_server(), start_worker()]])
-#         print("main finished")
-
-#     return main
-
-def _handle_task_result(task: asyncio.Task) -> None:
-    try:
-        task.result()
-    except asyncio.CancelledError:
-        pass  # Task cancellation should not be logged as an error.
-    except Exception:  # pylint: disable=broad-except
-        print(f'Exception raised by task = {task}')
-        sys.exit(1)
-
-def run_with_except():
-    """
-    With try except CancelledError
-    main finished not printed
-    """
-    async def main():
-        tasks = []
-        try:
-            tasks = [asyncio.create_task(coro) for coro in [start_server(), start_worker()]]
-            for task in tasks:
-                task.add_done_callback(_handle_task_result)
-            await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
-        except asyncio.CancelledError:
-            await asyncio.wait(tasks)
-            print("Finishing main")
-            await asyncio.sleep(0.5)
-            print("Main finished")
-
-    return main
-
-def shutdown(signum, *_):
-    print(f"Received exit signal {signal.Signals(signum).name}={signum} {signal.strsignal(signum)} ...")
-    tasks = [t for t in asyncio.all_tasks()]
-    for task in tasks:
-        task.cancel()
-
-for s in [signal.SIGTERM, signal.SIGINT]:
-    signal.signal(s, shutdown)
-asyncio.run(run_with_except()())
+if __name__ == '__main__':
+    # GracefulApp(shutdown_cb,shutdown_coro).run(coroutines=[start_server, start_worker])
+    GracefulApp().run(coroutines=[start_server, start_worker])
