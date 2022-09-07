@@ -1,0 +1,1 @@
+docker run -d --name snippet --memory=1g --restart unless-stopped -p 0.0.0.0:8888:8888/tcp snippet
