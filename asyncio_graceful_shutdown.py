@@ -5,11 +5,12 @@ import time
 
 async def start_server():
     async def handle_healthcheck(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        message = f'HTTP/1.1 200 OK\r\n\r\nHEALTHY {time.time()}'
+        message = f'HTTP/1.1 503 SERVICE UNAVAILABLE\r\n\r\nNOT HEALTHY {time.time()}'
+        # message = f'HTTP/1.1 200 OK\r\n\r\HEALTHY {time.time()}'
         writer.write(message.encode('utf8'))
         await writer.drain()
-        # if writer.can_write_eof():
-        #     writer.write_eof()
+        if writer.can_write_eof():
+            writer.write_eof()
         writer.close()
         await writer.wait_closed()
 
